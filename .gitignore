@@ -172,3 +172,38 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# YOLOPv2-Studio specific
+YOLOPv2-Studio-env/
+runs/
+*.pt
+*.pth
+*.onnx
+*.trt
+*.engine
+*.tflite
+*.pb
+*.torchscript
+*.mlmodel
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+# Large GIF files
+data/demo/together_video.gif
+data/demo/predict_video.gif
+
+# Mac OS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
