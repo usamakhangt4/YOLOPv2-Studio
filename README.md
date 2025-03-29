@@ -102,6 +102,9 @@ python demo.py --source data/example.jpg
 5. View the results with detected objects, drivable areas, and lane lines
 
 ## Project Structure
+
+The project is organized as follows:
+
 YOLOPv2-Studio/
 ├── app/ # Web application
 │ ├── app.py # Flask application main file
