@@ -85,7 +85,7 @@ The web interface provides:
 
 1. Multiple input methods:
    - Upload your own images
-   - Use demo images from the data/demo directory
+   - Use the example image from the data/demo directory
    - Use webcam for real-time detection
 
 2. Customizable detection options:
@@ -95,11 +95,11 @@ The web interface provides:
 ## Example Usage
 
 1. Start the web server
-2. Upload or select an image
-3. Toggle detection options
-4. Click "Process Image"
+2. Select one of the input methods (upload an image, select demo image, or use camera)
+3. Adjust detection options using the toggles and sliders
+4. For camera input, use the Start/Stop buttons to control processing
 5. View the results with detected objects, drivable areas, and lane lines
 
 ## License
 
-[Specify your license here]
+Based on [YOLOPv2](https://github.com/CAIC-AD/YOLOPv2) developed by CAIC-AD
