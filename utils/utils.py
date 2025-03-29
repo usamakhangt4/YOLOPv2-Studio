@@ -181,7 +181,7 @@ def split_for_trace_model(pred = None, anchor_grid = None):
     pred = torch.cat(z, 1)
     return pred
 
-def show_seg_result(img, result, palette=None,is_demo=False):
+def show_seg_result(img, result, palette=None, is_demo=False, return_img=False):
 
     if palette is None:
         palette = np.random.randint(
@@ -213,7 +213,10 @@ def show_seg_result(img, result, palette=None,is_demo=False):
     # img = img * 0.5 + color_seg * 0.5
     #img = img.astype(np.uint8)
     #img = cv2.resize(img, (1280,720), interpolation=cv2.INTER_LINEAR)
-    return 
+    
+    if return_img:
+        return img
+    return
 
 
 def increment_path(path, exist_ok=True, sep=''):

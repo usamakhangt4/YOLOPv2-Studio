@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOPv2 Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        dark: '#1F2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .loader {
+            border-top-color: #3B82F6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .settings-changed-badge {
+            animation: fadeInOut 2s infinite;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-dark text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">YOLOPv2 Studio</h1>
+            <div class="flex space-x-4">
+                <a href="https://github.com/CAIC-AD/YOLOPv2" target="_blank" class="hover:text-primary transition-colors">GitHub</a>
+                <span id="fps-counter" class="px-2 py-1 bg-primary rounded text-sm hidden">FPS: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 mt-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left panel: Controls -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Controls</h2>
+                
+                <!-- Input Method Selection -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Input Method</label>
+                    <div class="flex flex-col space-y-2">
+                        <button id="upload-btn" class="bg-primary hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                            Upload Image
+                        </button>
+                        <button id="camera-btn" class="bg-secondary hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                            Use Camera
+                        </button>
+                        <button id="demo-btn" class="bg-accent hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                            Demo Images
+                        </button>
+                    </div>
+                    <input type="file" id="file-input" class="hidden" accept="image/*">
+                </div>
+                
+                <!-- Demo Images (Initially Hidden) -->
+                <div id="demo-images" class="mb-6 hidden">
+                    <label class="block text-gray-700 font-semibold mb-2">Demo Images</label>
+                    <div class="grid grid-cols-2 gap-2" id="demo-thumbnails">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Model Settings -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 font-semibold">Model Settings</label>
+                        <span id="settings-changed-badge" class="hidden settings-changed-badge px-2 py-1 bg-yellow-500 text-white text-xs rounded-full">Changes Pending</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Confidence Threshold</label>
+                            <input type="range" min="0.1" max="0.9" step="0.05" value="0.3" id="conf-threshold" class="w-full">
+                            <span id="conf-value" class="text-sm text-gray-500">0.3</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">IOU Threshold</label>
+                            <input type="range" min="0.1" max="0.9" step="0.05" value="0.45" id="iou-threshold" class="w-full">
+                            <span id="iou-value" class="text-sm text-gray-500">0.45</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Display Options -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 font-semibold">Display Options</label>
+                        <span id="display-changed-badge" class="hidden settings-changed-badge px-2 py-1 bg-yellow-500 text-white text-xs rounded-full">Changes Pending</span>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox" id="show-objects" checked>
+                            <span class="ml-2">Show Objects</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox" id="show-drivable" checked>
+                            <span class="ml-2">Show Drivable Area</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox" id="show-lanes" checked>
+                            <span class="ml-2">Show Lane Lines</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Apply Changes Button (initially hidden) -->
+                <div id="apply-changes-container" class="mb-6 hidden">
+                    <button id="apply-changes-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center animate-pulse">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Apply Changes
+                    </button>
+                </div>
+                
+                <!-- Stats -->
+                <div id="stats" class="mt-4 p-3 bg-gray-100 rounded-lg hidden">
+                    <h3 class="font-semibold text-gray-700 mb-2">Stats</h3>
+                    <div id="stats-content" class="text-sm space-y-1">
+                        <p>Inference Time: <span id="inference-time">0</span> ms</p>
+                        <p>Detected Objects: <span id="detection-count">0</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Middle & Right panel: Output Display -->
+            <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Output</h2>
+                
+                <!-- Display Area -->
+                <div class="relative rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center h-[500px]" id="display-container">
+                    <div id="placeholder" class="text-center p-8">
+                        <div class="text-gray-500 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p class="text-lg font-medium">No Image Selected</p>
+                            <p class="text-sm">Upload an image, use your camera, or try a demo image</p>
+                        </div>
+                    </div>
+                    <img id="output-image" class="max-h-full max-w-full hidden">
+                    <video id="camera-stream" class="max-h-full max-w-full hidden" autoplay playsinline></video>
+                    <canvas id="output-canvas" class="absolute inset-0 w-full h-full hidden"></canvas>
+                    
+                    <!-- Loading overlay -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden">
+                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+                    </div>
+                </div>
+                
+                <!-- Camera Controls (Initially Hidden) -->
+                <div id="camera-controls" class="mt-4 flex justify-center space-x-4 hidden">
+                    <button id="camera-start" class="bg-secondary hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                        Start Processing
+                    </button>
+                    <button id="camera-stop" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                        Stop
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-dark text-white p-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p>YOLOPv2 Studio - Better, Faster, Stronger for Panoptic Driving Perception</p>
+            <p class="text-sm mt-1 text-gray-400">Based on <a href="https://github.com/CAIC-AD/YOLOPv2" class="text-primary hover:underline" target="_blank">YOLOPv2</a> developed by CAIC-AD</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 
