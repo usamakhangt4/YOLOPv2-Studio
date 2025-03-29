@@ -174,7 +174,7 @@ cython_debug/
 .pypirc
 
 # YOLOPv2-Studio specific
-YOLOPv2-Studio-env/
+studio-env/
 runs/
 *.pt
 *.pth
