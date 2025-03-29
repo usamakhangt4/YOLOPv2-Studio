@@ -223,8 +223,8 @@ def process():
     return jsonify(result)
 
 @app.route('/demo/<path:filename>')
-def demo_file(filename):
-    """Serve demo files"""
+def demo_image(filename):
+    """Get demo image"""
     return send_from_directory('../data/demo', filename)
 
 @app.route('/detect-demo', methods=['POST'])

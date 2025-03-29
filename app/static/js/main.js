@@ -44,12 +44,7 @@ let cachedUploadedFile = null; // Store the uploaded file
 
 // Demo images
 const demoImageList = [
-    { name: 'Vehicle Detection', file: 'veh3.jpg' },
-    { name: 'Lane Detection', file: 'lane3.jpg' },
-    { name: 'Night Scene', file: 'night1.jpg' },
-    { name: 'Full Scene', file: 'all3.jpg' },
-    { name: 'Free Space', file: 'fs3.jpg' },
-    { name: 'Lane Lines', file: 'lane1.jpg' }
+    { name: 'Example', file: 'example.jpg' }
 ];
 
 // Initialize
