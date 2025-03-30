@@ -104,7 +104,6 @@ YOLOPv2-Studio/
 │       └── yolopv2.pt   # YOLOPv2 model weights (downloaded separately)
 ├── utils/               # Utility functions
 │   └── utils.py         # General utility functions
-├── demo.py              # Command-line demo script
 ├── requirements.txt     # Python dependencies
 ├── LICENSE              # MIT License
 └── README.md            # Project documentation
