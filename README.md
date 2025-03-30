@@ -35,7 +35,7 @@ The web interface provides:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/YOLOPv2-Studio.git
+   git clone https://github.com/usamakhangt4/YOLOPv2-Studio.git
    cd YOLOPv2-Studio
    ```
 
