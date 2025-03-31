@@ -41,16 +41,73 @@ let thresholdDebounceTimer = null;
 let currentDemoFilename = null;
 let settingsChanged = false;
 let cachedUploadedFile = null; // Store the uploaded file
+let lastProcessingTime = 0;
+let processingInProgress = false;
+let processingTimes = []; // Array to store last 10 processing times
 
 // Demo images
 const demoImageList = [
     { name: 'Example', file: 'example.jpg' }
 ];
 
+// System Information Functions
+async function fetchSystemInfo() {
+    try {
+        const response = await fetch('/system-info');
+        const data = await response.json();
+        updateSystemInfo(data);
+    } catch (error) {
+        console.error('Error fetching system info:', error);
+    }
+}
+
+function updateSystemInfo(info) {
+    // Update OS
+    document.getElementById('system-os').textContent = info.os;
+    
+    // Update Python Version
+    document.getElementById('python-version').textContent = info.python_version;
+    
+    // Update PyTorch Version
+    document.getElementById('torch-version').textContent = info.torch_version;
+    
+    // Update CUDA Status
+    const cudaStatus = document.getElementById('cuda-status');
+    cudaStatus.textContent = info.cuda_available ? 
+        `Available (${info.cuda_version})` : 
+        'Not Available';
+    cudaStatus.className = `px-2 py-0.5 text-xs rounded-full ${
+        info.cuda_available ? 
+        'bg-green-100 text-green-800' : 
+        'bg-gray-100 text-gray-800'
+    }`;
+    
+    // Update Available Devices
+    const devicesContainer = document.getElementById('available-devices');
+    devicesContainer.innerHTML = info.available_devices.map(device => `
+        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+            ${device}
+        </span>
+    `).join('');
+    
+    // Update Current Device
+    document.getElementById('current-device').textContent = info.current_device;
+    
+    // Update Model Status
+    const modelStatus = document.getElementById('model-status');
+    modelStatus.textContent = info.model_loaded ? 'Loaded' : 'Not Loaded';
+    modelStatus.className = `px-2 py-0.5 text-xs rounded-full ${
+        info.model_loaded ? 
+        'bg-green-100 text-green-800' : 
+        'bg-red-100 text-red-800'
+    }`;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     updateThresholdLabels();
+    fetchSystemInfo();
 });
 
 // Setup event listeners
@@ -158,11 +215,9 @@ function debouncedReprocess() {
 }
 
 // Handle file upload
-function handleFileUpload(event) {
+async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    console.log(`Uploading file: ${file.name}, size: ${file.size} bytes`);
     
     // Store the file for later use
     cachedUploadedFile = file;
@@ -179,19 +234,25 @@ function handleFileUpload(event) {
     formData.append('show_drivable', showDrivable.checked);
     formData.append('show_lanes', showLanes.checked);
     
-    fetch('/process', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch('/process', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
         displayResult(data);
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error processing image:', error);
         showLoading(false);
-        alert('Error processing image. Please try again.');
-    });
+        alert(`Error processing image: ${error.message}`);
+    }
 }
 
 // Toggle camera
@@ -252,19 +313,116 @@ function startCameraProcessing() {
     
     isProcessingCamera = true;
     cameraStart.classList.add('hidden');
+    
+    // Make FPS counter more visible
     fpsCounter.classList.remove('hidden');
+    fpsCounter.style.display = 'inline-block'; // Force display
+    fpsCounter.style.position = 'fixed';
+    fpsCounter.style.top = '70px';
+    fpsCounter.style.right = '20px';
+    fpsCounter.style.zIndex = '1000';
+    
     statsSection.classList.remove('hidden');
     
     lastFrameTime = performance.now();
     frameCount = 0;
+    lastProcessingTime = 0;
+    processingInProgress = false;
+    processingTimes = []; // Array to store last 10 processing times
     
     fpsDisplayInterval = setInterval(updateFPS, 1000);
-    processingInterval = setInterval(processCurrentFrame, 100); // Process every 100ms
+    
+    // Dynamic frame rate based on device performance
+    requestAnimationFrame(processFrameWhenReady);
+}
+
+// Process frames only when ready (dynamic frame rate)
+function processFrameWhenReady() {
+    if (!isProcessingCamera) return;
+    
+    const now = performance.now();
+    // Adaptive frame processing - wait at least 50ms between frames
+    // or wait until previous processing is complete
+    const minInterval = 50; // ms between frames (max 20 FPS)
+    
+    if (!processingInProgress && (now - lastProcessingTime) >= minInterval) {
+        lastProcessingTime = now;
+        processingInProgress = true;
+        
+        const processStart = performance.now();
+        processCurrentFrame().finally(() => {
+            const processEnd = performance.now();
+            const processDuration = processEnd - processStart;
+            
+            // Store processing time for FPS calculation
+            processingTimes.push(processDuration);
+            // Keep only the last 10 measurements
+            if (processingTimes.length > 10) {
+                processingTimes.shift();
+            }
+            
+            processingInProgress = false;
+            frameCount++;
+        });
+    }
+    
+    // Continue the loop
+    requestAnimationFrame(processFrameWhenReady);
+}
+
+// Process current camera frame
+async function processCurrentFrame() {
+    if (!isProcessingCamera || !cameraStream.srcObject) return;
+    
+    try {
+        // Create lower resolution canvas for processing
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Use a lower resolution for faster processing
+        const scaleFactor = 0.75; // Reduce to 75% of original size
+        canvas.width = cameraStream.videoWidth * scaleFactor;
+        canvas.height = cameraStream.videoHeight * scaleFactor;
+        
+        // Draw the frame at reduced resolution
+        ctx.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
+        
+        // Use lower quality JPEG for faster transmission
+        const imageData = canvas.toDataURL('image/jpeg', 0.85);
+        
+        // Send to server for processing
+        const response = await fetch('/camera', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                image: imageData,
+                conf_threshold: parseFloat(confThreshold.value),
+                iou_threshold: parseFloat(iouThreshold.value),
+                show_objects: showObjects.checked,
+                show_drivable: showDrivable.checked,
+                show_lanes: showLanes.checked
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        displayCameraResult(data);
+        frameCount++;
+        
+    } catch (error) {
+        console.error('Error processing camera frame:', error);
+    }
 }
 
 // Stop camera processing
 function stopCameraProcessing() {
     isProcessingCamera = false;
+    processingInProgress = false;
     
     if (processingInterval) {
         clearInterval(processingInterval);
@@ -277,58 +435,16 @@ function stopCameraProcessing() {
     }
     
     cameraStart.classList.remove('hidden');
+    
+    // Reset FPS counter styles
     fpsCounter.classList.add('hidden');
+    fpsCounter.style.display = '';
+    fpsCounter.style.position = '';
+    fpsCounter.style.top = '';
+    fpsCounter.style.right = '';
+    fpsCounter.style.zIndex = '';
+    
     statsSection.classList.add('hidden');
-}
-
-// Process current camera frame
-function processCurrentFrame() {
-    if (!isProcessingCamera || !cameraStream.srcObject) return;
-    
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = cameraStream.videoWidth;
-    canvas.height = cameraStream.videoHeight;
-    
-    ctx.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
-    
-    const imageData = canvas.toDataURL('image/jpeg');
-    
-    fetch('/camera', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            image: imageData,
-            conf_threshold: parseFloat(confThreshold.value),
-            iou_threshold: parseFloat(iouThreshold.value),
-            show_objects: showObjects.checked,
-            show_drivable: showDrivable.checked,
-            show_lanes: showLanes.checked
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayCameraResult(data);
-        frameCount++;
-    })
-    .catch(error => {
-        console.error('Error processing camera frame:', error);
-    });
-}
-
-// Update FPS counter
-function updateFPS() {
-    const now = performance.now();
-    const elapsed = now - lastFrameTime;
-    const fps = Math.round((frameCount * 1000) / elapsed);
-    
-    fpsCounter.textContent = `FPS: ${fps}`;
-    
-    frameCount = 0;
-    lastFrameTime = now;
 }
 
 // Toggle demo images
@@ -409,6 +525,21 @@ function processDemoImage(filename) {
 // Display result for static image
 function displayResult(data) {
     showLoading(false);
+    
+    // Check if data contains an error
+    if (data.error) {
+        console.error('Error from server:', data.error);
+        alert(`Error processing image: ${data.error}`);
+        return;
+    }
+    
+    // Check if data and data.image exist
+    if (!data || !data.image) {
+        console.error('Invalid response data:', data);
+        alert('Error: Invalid response from server');
+        return;
+    }
+    
     placeholder.classList.add('hidden');
     outputImage.classList.remove('hidden');
     
@@ -610,4 +741,26 @@ function reprocessCurrentImage() {
         showLoading(false);
         console.error("Invalid mode or missing file", currentMode);
     }
+}
+
+// Update FPS counter
+function updateFPS() {
+    const now = performance.now();
+    const elapsed = now - lastFrameTime;
+    
+    // Calculate displayed FPS based on frames processed
+    const displayFps = Math.round((frameCount * 1000) / elapsed);
+    
+    // Calculate actual processing FPS based on average processing time
+    let processingFps = 0;
+    if (processingTimes.length > 0) {
+        const avgProcessingTime = processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length;
+        processingFps = Math.round(1000 / avgProcessingTime);
+    }
+    
+    // Display both metrics
+    fpsCounter.textContent = `Display: ${displayFps} FPS | Processing: ${processingFps} FPS`;
+    
+    frameCount = 0;
+    lastFrameTime = now;
 } 

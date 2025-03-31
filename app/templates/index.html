@@ -53,7 +53,7 @@
             <h1 class="text-2xl font-bold">YOLOPv2 Studio</h1>
             <div class="flex space-x-4">
                 <a href="https://github.com/usamakhangt4/YOLOPv2-Studio" target="_blank" class="hover:text-primary transition-colors">GitHub</a>
-                <span id="fps-counter" class="px-2 py-1 bg-primary rounded text-sm hidden">FPS: 0</span>
+                <span id="fps-counter" class="px-3 py-1.5 bg-primary rounded-md text-white text-sm font-medium shadow-md hidden">FPS: 0</span>
             </div>
         </div>
     </header>
@@ -62,6 +62,54 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left panel: Controls -->
             <div class="bg-white rounded-lg shadow-md p-6">
+                <!-- System Information -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">System Info</h2>
+                        <button id="refresh-info" class="text-primary hover:text-blue-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-600 font-medium">System</p>
+                            <p id="system-os" class="text-gray-800">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">Python Version</p>
+                            <p id="python-version" class="text-gray-800">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">PyTorch Version</p>
+                            <p id="torch-version" class="text-gray-800">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">CUDA Status</p>
+                            <div class="flex items-center space-x-2">
+                                <span id="cuda-status" class="px-2 py-0.5 text-xs rounded-full">Loading...</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">Available Devices</p>
+                            <div id="available-devices" class="flex flex-wrap gap-2 mt-1">
+                                <span class="text-gray-800">Loading...</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">Current Device</p>
+                            <p id="current-device" class="text-gray-800">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 font-medium">Model Status</p>
+                            <div class="flex items-center space-x-2">
+                                <span id="model-status" class="px-2 py-0.5 text-xs rounded-full">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <h2 class="text-xl font-semibold mb-4">Controls</h2>
                 
                 <!-- Input Method Selection -->
