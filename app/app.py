@@ -252,6 +252,20 @@ def load_model(weights_path=None, device_str=''):
                     _ = model_state.model(dummy_input)
             torch.cuda.synchronize()
             logger.info("Warmup complete")
+        elif model_state.device.type == 'mps':
+            logger.info("Using MPS (Metal Performance Shaders) acceleration")
+            
+            # Warmup for MPS as well
+            logger.info("Warming up model...")
+            input_size = Config.MODEL_IMAGE_SIZE
+            dummy_input = torch.zeros(1, 3, input_size, input_size).to(model_state.device).type_as(next(model_state.model.parameters()))
+            with torch.no_grad():
+                for _ in range(2):  # Run twice for warmup
+                    _ = model_state.model(dummy_input)
+            # Synchronize if available
+            if hasattr(torch.mps, 'synchronize'):
+                torch.mps.synchronize()
+            logger.info("Warmup complete")
         
         # Set model to evaluation mode
         model_state.model.to(model_state.device).eval()
@@ -716,7 +730,11 @@ def main():
         logger.info(f"CUDA Available: {system_info['cuda_available']}")
         if system_info['cuda_available']:
             logger.info(f"CUDA Version: {system_info['cuda_version']}")
-        
+        # Log MPS availability
+        mps_available = (hasattr(torch.backends, 'mps') and hasattr(torch.backends.mps, 'is_available') 
+                        and torch.backends.mps.is_available())
+        logger.info(f"MPS Available: {mps_available}")
+      
         # Suggest best device for this system
         suggested_device = suggest_device()
         logger.info(f"\nSuggested device for this system: {suggested_device}")
@@ -726,10 +744,18 @@ def main():
         success = load_model(device_str=suggested_device)
         
         if not success:
-            raise RuntimeError("Model failed to load")
-        
-        logger.info('Model loaded successfully!')
-        logger.info(f"Model device: {next(model_state.model.parameters()).device}")
+            logger.error("Failed to load model with suggested device. Trying CPU as fallback...")
+            success = load_model(device_str='cpu')
+            if not success:
+                raise RuntimeError("Model failed to load on any device")
+            logger.warning("Model loaded on CPU. Performance may be slower.")
+        else:
+            logger.info('Model loaded successfully!')
+            try:
+                device_info = next(model_state.model.parameters()).device
+                logger.info(f"Model device: {device_info}")
+            except:
+                logger.info(f"Model device: {model_state.device}")
         
         # Run Flask app with appropriate settings for the platform
         use_threading = system_info['os'] != 'Windows' or suggested_device == 'cpu'
