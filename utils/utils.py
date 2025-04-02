@@ -30,16 +30,27 @@ def date_modified(path=__file__):
     return f'{t.year}-{t.month}-{t.day}'
 
 def select_device(device='', batch_size=None):
-    # device = 'cpu' or '0' or '0,1,2,3'
+    # device = 'cpu' or '0' or '0,1,2,3' or 'mps'
     s = f'YOLOPv2 🚀 {git_describe() or date_modified()} torch {torch.__version__} '  # string
     cpu = device.lower() == 'cpu'
+    mps = device.lower() == 'mps'  # Apple Metal Performance Shaders (MPS)
+    
     if cpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # force torch.cuda.is_available() = False
+    elif mps:
+        # No environment variables needed for MPS
+        if not (hasattr(torch, 'backends') and hasattr(torch.backends, 'mps') and 
+                hasattr(torch.backends.mps, 'is_available') and torch.backends.mps.is_available()):
+            logger.warning(f"MPS not available, falling back to CPU. Please update PyTorch to a version that supports MPS.")
+            device = 'cpu'
+            mps = False
+            cpu = True
     elif device:  # non-cpu device requested
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
         assert torch.cuda.is_available(), f'CUDA unavailable, invalid device {device} requested'  # check availability
 
-    cuda = not cpu and torch.cuda.is_available()
+    cuda = not cpu and not mps and torch.cuda.is_available()
+    
     if cuda:
         n = torch.cuda.device_count()
         if n > 1 and batch_size:  # check that batch_size is compatible with device_count
@@ -48,17 +59,27 @@ def select_device(device='', batch_size=None):
         for i, d in enumerate(device.split(',') if device else range(n)):
             p = torch.cuda.get_device_properties(i)
             s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
+    elif mps:
+        s += 'MPS (Apple Silicon)\n'
     else:
         s += 'CPU\n'
 
     logger.info(s.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else s)  # emoji-safe
-    return torch.device('cuda:0' if cuda else 'cpu')
+    
+    if cuda:
+        return torch.device('cuda:0')
+    elif mps:
+        return torch.device('mps')
+    else:
+        return torch.device('cpu')
 
 
 def time_synchronized():
     # pytorch-accurate time
     if torch.cuda.is_available():
         torch.cuda.synchronize()
+    elif hasattr(torch, 'mps') and hasattr(torch.mps, 'synchronize'):
+        torch.mps.synchronize()
     return time.time()
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=3):

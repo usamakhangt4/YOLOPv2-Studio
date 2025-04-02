@@ -177,7 +177,7 @@ def suggest_device():
     
     if system_info['os'] == 'Darwin':  # macOS
         if torch.backends.mps.is_available():
-            return 'mps'  # Use Metal Performance Shaders if available
+            return 'mps'  # Use Metal Performance Shaders on Apple Silicon
         return 'cpu'
     elif system_info['cuda_available']:
         return '0'  # Use CUDA if available
@@ -186,15 +186,19 @@ def suggest_device():
 def unload_model():
     """Properly unload the current model and free resources"""
     if model_state.model is not None:
-        # Move model to CPU first to free GPU memory
+        # Move model to CPU first to free GPU/MPS memory
         if hasattr(model_state.model, 'to') and model_state.device and model_state.device.type != 'cpu':
             model_state.model.to('cpu')
             
-        # Delete model and clear CUDA cache if using CUDA
+        # Delete model and clear device cache if applicable
         model_state.model = None
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and model_state.device and model_state.device.type == 'cuda':
             with torch.cuda.device(model_state.device):
                 torch.cuda.empty_cache()
+        elif model_state.device and model_state.device.type == 'mps':
+            # MPS has no direct empty_cache equivalent, use garbage collection
+            import gc
+            gc.collect()
                 
         model_state.device = None
         logger.info("Model unloaded and resources freed")
@@ -433,6 +437,11 @@ def process_image(image_bytes, conf_thres=None, iou_thres=None,
         # Clean up tensors to avoid memory leaks
         if model_state.device and model_state.device.type == 'cuda':
             torch.cuda.empty_cache()
+        elif model_state.device and model_state.device.type == 'mps':
+            # There's no direct equivalent to empty_cache for MPS,
+            # but we can help garbage collection by deleting variables
+            import gc
+            gc.collect()
         
         return {
             'image': img_base64,

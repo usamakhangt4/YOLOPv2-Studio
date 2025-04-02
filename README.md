@@ -91,6 +91,7 @@ The web interface provides:
 
 1. **Prerequisites:**
    - Install Python using Homebrew (recommended) or from [python.org](https://www.python.org/downloads/macos/)
+   - For optimal performance, an Apple Silicon Mac (M1/M2/M3) is recommended
    
    ```bash
    # Install Homebrew if not already installed
@@ -123,6 +124,8 @@ The web interface provides:
    ```
 
 4. Open your browser and navigate to: http://localhost:8080
+
+**Note for Apple Silicon Mac Users:** The application will automatically detect Apple Silicon (M1/M2/M3) and use Metal Performance Shaders (MPS) for GPU acceleration! This provides significantly better performance than CPU mode.
 
 ### For Linux Users
 
@@ -256,6 +259,7 @@ The latest version of YOLOPv2-Studio includes several enhancements:
 4. **Performance Optimizations:**
    - Smarter image resizing
    - Improved memory management
+   - Metal Performance Shaders (MPS) support for Apple Silicon Macs
    - CUDA resource cleanup
 
 5. **Platform Detection:**
