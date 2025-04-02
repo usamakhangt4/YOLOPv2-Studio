@@ -77,7 +77,12 @@ The web interface provides:
 
 3. **Running the Application:**
    ```bat
-   python app/main.py
+   python -m app.app
+   ```
+   or
+   ```bat
+   cd app
+   python app.py
    ```
 
 4. Open your browser and navigate to: http://localhost:8080
@@ -114,7 +119,7 @@ The web interface provides:
 
 3. **Running the Application:**
    ```bash
-   python app/main.py
+   python -m app.app
    ```
 
 4. Open your browser and navigate to: http://localhost:8080
@@ -153,7 +158,7 @@ The web interface provides:
 
 3. **Running the Application:**
    ```bash
-   python app/main.py
+   python -m app.app
    ```
 
 4. Open your browser and navigate to: http://localhost:8080
@@ -180,7 +185,7 @@ When you run the application for the first time:
    
    - **If the model fails to load:**
      - Check your internet connection for the automatic download
-     - You can manually download the model from [this link](https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt) and place it in the `data/weights/` directory
+     - You can manually download the model from [this link](https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt) and place it in the `weights/` directory
 
    - **If the camera doesn't work:**
      - Make sure your browser has permission to access your camera
@@ -209,47 +214,79 @@ When you run the application for the first time:
 
 ## Project Structure
 
-The application has been restructured for better organization and maintainability:
+The application has been refactored for improved organization and performance:
 
 ```
 YOLOPv2-Studio/
 ├── app/                      # Application directory
-│   ├── config/               # Configuration files
-│   │   ├── __init__.py       # Package initialization
-│   │   └── settings.py       # Application settings
-│   ├── models/               # Model-related code
-│   │   ├── __init__.py       # Package initialization
-│   │   └── model_loader.py   # Model loading and management
-│   ├── modules/              # Additional functional modules
-│   │   └── __init__.py       # Package initialization
-│   ├── routes/               # API and web route handlers
-│   │   ├── __init__.py       # Package initialization
-│   │   ├── api.py            # API endpoints
-│   │   └── web.py            # Web page routes
 │   ├── static/               # Static assets
-│   │   ├── css/              # CSS stylesheets
-│   │   ├── js/               # JavaScript files
-│   │   └── images/           # App images and icons
+│   │   └── js/               # JavaScript files
 │   ├── templates/            # HTML templates
 │   │   └── index.html        # Main application page
-│   ├── utils_app/            # Utility functions
-│   │   ├── __init__.py       # Package initialization
-│   │   └── image_processing.py # Image processing utilities
-│   ├── app.py                # Legacy app file (for reference)
-│   └── main.py               # Application entry point
+│   └── app.py                # Main application file with all functionality
 ├── data/                     # Data directory
-│   ├── demo/                 # Demo images and videos
-│   │   └── example.jpg       # Example image for testing
-│   └── weights/              # Model weights directory
-│       └── yolopv2.pt        # YOLOPv2 model weights (auto-downloaded)
+│   └── demo/                 # Demo images and videos
+├── utils/                    # YOLOPv2 utility functions
+│   └── utils.py              # Original YOLOPv2 utilities
+├── weights/                  # Model weights directory
+│   └── yolopv2.pt            # YOLOPv2 model weights (auto-downloaded)
+├── screenshots/              # Application screenshots
 ├── requirements.txt          # Python dependencies
-├── LICENSE                   # MIT License
-└── README.md                 # Project documentation
+├── LICENSE                   # License information
+└── README.md                 # This file
+```
+
+## Key Improvements
+
+The latest version of YOLOPv2-Studio includes several enhancements:
+
+1. **Simplified Architecture:**
+   - Centralized application logic in a single app.py file
+   - Improved Configuration class for all settings
+
+2. **Thread Safety:**
+   - Thread-local storage for model state
+   - Proper resource management for multithreading
+
+3. **Enhanced Security:**
+   - Input validation and sanitization
+   - File type verification
+   - Protection against malicious uploads
+
+4. **Performance Optimizations:**
+   - Smarter image resizing
+   - Improved memory management
+   - CUDA resource cleanup
+
+5. **Platform Detection:**
+   - Automatic device selection (CPU, CUDA, MPS)
+   - Platform-specific optimizations
+   - Automatic warm-up for GPU acceleration
+
+6. **Environment Variables Support:**
+   - Configure host, port, and debug mode
+   - Set custom model parameters
+
+## Environment Variables
+
+You can customize the application behavior using environment variables:
+
+```bash
+# Server settings
+HOST=0.0.0.0     # Host address (default: 0.0.0.0)
+PORT=8080        # Port number (default: 8080)
+DEBUG=False      # Debug mode (default: False)
+
+# Security
+SECRET_KEY=mysecretkey  # Session secret key
 ```
 
 ## License
 
-Based on [YOLOPv2](https://github.com/CAIC-AD/YOLOPv2) developed by CAIC-AD.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-MIT License - © 2025 Muhammad Usama Bin Akhtar Khan.
+## Acknowledgments
+
+* Original YOLOPv2 implementation: [CAIC-AD/YOLOPv2](https://github.com/CAIC-AD/YOLOPv2)
+* Inspired by autonomous driving perception systems
 
